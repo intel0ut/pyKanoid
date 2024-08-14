@@ -2,8 +2,7 @@ import random
 import pygame
 import sys
 
-game_dir="C:\\Users\\gvenere\\Desktop\\Source\\Pykanoid"
-# game_dir="."
+game_dir="."
 
 pygame.init()
 pygame.mixer.init() # add this line
@@ -54,6 +53,7 @@ def detect_border_coll(scr,rect):
 def draw_blocks(rsrc, max_lines, max_cols):
     blocks=[[0 for i in range(max_cols)] for j in range(max_lines)]
     block_rects=[[0 for i in range(max_cols)] for j in range(max_lines)]
+    block_count=0
     for line in range(2,max_lines):
         for col in range(0,max_cols):
             if random.randint(0,100) >= 10:
@@ -62,10 +62,11 @@ def draw_blocks(rsrc, max_lines, max_cols):
                 block_rects[line][col]=blocks[line][col].get_rect()
                 block_rects[line][col].centerx=(col*60)+30
                 block_rects[line][col].centery=int((line*25)+13)
+                block_count+=1
             else:
                 blocks[line][col]=None
                 block_rects[line][col]=None
-    return blocks, block_rects
+    return blocks, block_rects, block_count
 
 def main():
     # start here
@@ -113,7 +114,7 @@ def main():
     rsrc['block_y'].set_colorkey('#0a0a0a')
     rsrc['block_v'].set_colorkey('#0a0a0a')
 
-    blocks, block_rects = draw_blocks(rsrc, max_lines, max_cols)
+    blocks, block_rects, block_count = draw_blocks(rsrc, max_lines, max_cols)
 
     # start music
     pygame.mixer.music.play(-1)
@@ -177,9 +178,9 @@ def main():
             if y1_coll: # game over
                 print('player lost!')
                 lifes-=1
-                if lifes==0:
+                if lifes<0:
                     game_over=True
-                    blocks, block_rects = draw_blocks(rsrc, max_lines, max_cols)
+                    blocks, block_rects, block_count = draw_blocks(rsrc, max_lines, max_cols)
                     lifes=5
                     score=0
                 ball_rect.centerx=player_bar_rect.centerx
@@ -245,8 +246,17 @@ def main():
                             
                             blocks[line][col]=None # remove block
                             block_rects[line][col]=None
+                            block_count-=1
                             score+=10
-
+                            # player cleared level
+                            if block_count==0:
+                                blocks, block_rects, block_count = draw_blocks(rsrc, max_lines, max_cols)
+                                ball_moving=False
+                                ball_rect.centerx=player_bar_rect.centerx
+                                ball_rect.centery=player_bar_rect.top-(ball_rect.height/2)
+                                bl_last_x=ball_spd # initial movement to the right
+                                bl_last_y=-ball_spd # and up 
+                                ball_rect=ball_rect.move(bl_last_x, bl_last_y)
 
             # move ball
             ball_rect=ball_rect.move(bl_last_x, bl_last_y)
@@ -269,7 +279,7 @@ def main():
             life_rect.centery=life_y+20
             screen.blit(lifeS,life_rect)
 
-        # draw blocks
+        # blit blocks
         for line in range(2,max_lines):
             for col in range(0,max_cols):
                 if blocks[line][col] is not None:
